@@ -1,0 +1,41 @@
+{
+	"name": "@collab-api/extension-logger",
+	"version": "4.0.0",
+	"description": "collab-api logging extension",
+	"homepage": "https://collab-api.dev",
+	"keywords": [
+		"collab-api",
+		"logging",
+		"logger",
+		"yjs"
+	],
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/collab-api-logger.cjs",
+	"module": "dist/collab-api-logger.esm.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		"source": {
+			"import": "./src/index.ts"
+		},
+		"default": {
+			"import": "./dist/collab-api-logger.esm.js",
+			"require": "./dist/collab-api-logger.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"src",
+		"dist"
+	],
+	"dependencies": {
+		"@collab-api/server": "workspace:^"
+	},
+	"gitHead": "b3454a4ca289a84ddfb7fa5607a2d4b8d5c37e9d",
+	"repository": {
+		"url": "https://github.com/ueberdosis/collab-api"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
