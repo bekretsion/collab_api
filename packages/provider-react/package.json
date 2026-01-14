@@ -1,0 +1,47 @@
+{
+	"name": "@collab-api/provider-react",
+	"version": "4.0.0",
+	"description": "React bindings for CollabApi provider",
+	"homepage": "https://collab-api.dev",
+	"keywords": [
+		"collab-api",
+		"websocket",
+		"provider",
+		"react",
+		"yjs"
+	],
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/collab-api-provider-react.cjs",
+	"module": "dist/collab-api-provider-react.esm.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		"source": {
+			"import": "./src/index.ts"
+		},
+		"default": {
+			"import": "./dist/collab-api-provider-react.esm.js",
+			"require": "./dist/collab-api-provider-react.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"src",
+		"dist"
+	],
+	"peerDependencies": {
+		"@collab-api/provider": "workspace:^",
+		"react": "^18.0.0 || ^19.0.0",
+		"yjs": "^13.6.8"
+	},
+	"devDependencies": {
+		"@types/react": "^19.0.0",
+		"react": "^19.0.0"
+	},
+	"repository": {
+		"url": "https://github.com/ueberdosis/collab-api"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
