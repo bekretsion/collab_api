@@ -1,0 +1,48 @@
+{
+	"name": "@collab-api/extension-redis",
+	"version": "4.0.0",
+	"description": "Scale CollabApi horizontally with Redis",
+	"homepage": "https://collab-api.dev",
+	"keywords": [
+		"collab-api",
+		"redis",
+		"yjs"
+	],
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/collab-api-redis.cjs",
+	"module": "dist/collab-api-redis.esm.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		"source": {
+			"import": "./src/index.ts"
+		},
+		"default": {
+			"import": "./dist/collab-api-redis.esm.js",
+			"require": "./dist/collab-api-redis.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"src",
+		"dist"
+	],
+	"dependencies": {
+		"@collab-api/common": "workspace:^",
+		"@collab-api/server": "workspace:^",
+		"@sesamecare-oss/redlock": "^1.4.0",
+		"ioredis": "~5.6.1",
+		"kleur": "^4.1.4"
+	},
+	"peerDependencies": {
+		"y-protocols": "^1.0.6",
+		"yjs": "^13.6.8"
+	},
+	"gitHead": "b3454a4ca289a84ddfb7fa5607a2d4b8d5c37e9d",
+	"repository": {
+		"url": "https://github.com/ueberdosis/collab-api"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
