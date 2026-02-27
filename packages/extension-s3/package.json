@@ -1,0 +1,42 @@
+{
+	"name": "@collab-api/extension-s3",
+	"description": "a S3-compatible persistence driver for CollabApi",
+	"version": "4.0.0",
+	"homepage": "https://collab-api.dev",
+	"keywords": [
+		"collab-api",
+		"yjs",
+		"s3",
+		"persistence"
+	],
+	"license": "MIT",
+	"type": "module",
+	"main": "dist/collab-api-s3.cjs",
+	"module": "dist/collab-api-s3.esm.js",
+	"types": "dist/index.d.ts",
+	"exports": {
+		"source": {
+			"import": "./src/index.ts"
+		},
+		"default": {
+			"import": "./dist/collab-api-s3.esm.js",
+			"require": "./dist/collab-api-s3.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"src",
+		"dist"
+	],
+	"dependencies": {
+		"@aws-sdk/client-s3": "^3.981.0",
+		"@collab-api/extension-database": "workspace:^",
+		"kleur": "^4.1.4"
+	},
+	"publishConfig": {
+		"access": "public"
+	},
+	"repository": {
+		"url": "https://github.com/ueberdosis/collab-api"
+	}
+}
