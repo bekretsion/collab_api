@@ -1,0 +1,35 @@
+{
+	"name": "@collab-api/cli",
+	"description": "a CLI tool to start a local CollabApi server",
+	"version": "4.0.0",
+	"homepage": "https://collab-api.dev",
+	"keywords": [
+		"collab-api",
+		"yjs",
+		"yjs-websocket"
+	],
+	"license": "MIT",
+	"type": "module",
+	"bin": {
+		"collab-api": "./src/index.js",
+		"@collab-api/cli": "./src/index.js"
+	},
+	"files": [
+		"src"
+	],
+	"dependencies": {
+		"@collab-api/extension-logger": "workspace:^",
+		"@collab-api/extension-s3": "workspace:^",
+		"@collab-api/extension-sqlite": "workspace:^",
+		"@collab-api/extension-webhook": "workspace:^",
+		"@collab-api/server": "workspace:^",
+		"meow": "^14.0.0"
+	},
+	"gitHead": "b3454a4ca289a84ddfb7fa5607a2d4b8d5c37e9d",
+	"repository": {
+		"url": "https://github.com/ueberdosis/collab-api"
+	},
+	"publishConfig": {
+		"access": "public"
+	}
+}
