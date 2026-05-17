@@ -1,0 +1,96 @@
+@import "tailwindcss";
+
+:root {
+	--background: #000000;
+	--foreground: #fafafa;
+	--card: #0a0a0a;
+	--border: rgba(255, 255, 255, 0.08);
+	--muted: rgba(255, 255, 255, 0.55);
+	--subtle: rgba(255, 255, 255, 0.35);
+}
+
+@theme inline {
+	--color-background: var(--background);
+	--color-foreground: var(--foreground);
+	--font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+html {
+	color-scheme: dark;
+}
+
+body {
+	background: var(--background);
+	color: var(--foreground);
+	font-family: var(--font-sans);
+	font-feature-settings: "cv02", "cv03", "cv04", "cv11", "ss01";
+	line-height: 1.5;
+	-webkit-font-smoothing: antialiased;
+	-moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+	background: rgba(255, 255, 255, 0.15);
+}
+
+/* Editor */
+.tiptap {
+	color: var(--foreground);
+	font-size: 0.95rem;
+	line-height: 1.7;
+
+	:first-child {
+		margin-top: 0;
+	}
+
+	p {
+		word-break: break-word;
+		margin: 0.75em 0;
+	}
+
+	p.is-editor-empty:first-child::before {
+		color: var(--subtle);
+		content: attr(data-placeholder);
+		float: left;
+		height: 0;
+		pointer-events: none;
+	}
+
+	&:focus {
+		outline: none;
+	}
+
+	h1, h2, h3, h4, h5, h6 {
+		font-weight: 600;
+		color: var(--foreground);
+		letter-spacing: -0.01em;
+	}
+
+	/* Collaboration cursor */
+	.collaboration-carets__caret {
+		border-left: 1.5px solid currentColor;
+		border-right: 1.5px solid currentColor;
+		margin-left: -0.75px;
+		margin-right: -0.75px;
+		pointer-events: none;
+		position: relative;
+		word-break: normal;
+	}
+
+	.collaboration-carets__label {
+		border-radius: 4px 4px 4px 0;
+		color: black;
+		font-size: 10px;
+		font-style: normal;
+		font-weight: 500;
+		left: -1.5px;
+		line-height: 1;
+		padding: 3px 5px;
+		position: absolute;
+		top: -1.5em;
+		user-select: none;
+		white-space: nowrap;
+		font-family: var(--font-sans);
+		letter-spacing: 0.02em;
+	}
+}

@@ -1,0 +1,47 @@
+import test from 'ava'
+import { newCollabApi, newCollabApiProvider } from '../utils/index.ts'
+
+test('calls the afterStoreDocument hook', async t => {
+  await new Promise(async resolve => {
+    const server = await newCollabApi(t, {
+      async afterStoreDocument() {
+        t.pass()
+
+        resolve('done')
+      },
+    })
+
+    const provider = newCollabApiProvider(t, server, {
+      onSynced() {
+        // Dummy change to trigger onStoreDocument
+        provider.document.getArray('foo').push(['foo'])
+        provider.configuration.websocketProvider.destroy()
+        provider.destroy()
+      },
+    })
+  })
+})
+
+test('executes afterStoreDocument callback from a custom extension', async t => {
+  await new Promise(async resolve => {
+    class CustomExtension {
+      async afterStoreDocument() {
+        t.pass()
+
+        resolve('done')
+      }
+    }
+
+    const server = await newCollabApi(t, {
+      extensions: [
+        new CustomExtension(),
+      ],
+    })
+
+    const provider = newCollabApiProvider(t, server, {
+      onSynced() {
+        provider.document.getArray('foo').insert(0, ['bar'])
+      },
+    })
+  })
+})

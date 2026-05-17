@@ -1,0 +1,28 @@
+{
+	"name": "tests",
+	"version": "3.4.6-rc.1",
+	"private": true,
+	"type": "module",
+	"dependencies": {
+		"@collab-api/common": "workspace:^",
+		"@collab-api/extension-database": "workspace:^",
+		"@collab-api/extension-logger": "workspace:^",
+		"@collab-api/extension-redis": "workspace:^",
+		"@aws-sdk/client-s3": "^3.981.0",
+		"@collab-api/extension-s3": "workspace:^",
+		"@collab-api/extension-throttle": "workspace:^",
+		"@collab-api/provider": "workspace:^",
+		"@collab-api/server": "workspace:^",
+		"@collab-api/transformer": "workspace:^",
+		"redis": "^4.0.4",
+		"sinon": "^12.0.1",
+		"ws": "^8.5.0",
+		"yjs": "^13.6.4"
+	},
+	"devDependencies": {
+		"@types/redis": "^4.0.11",
+		"@types/sinon": "^10.0.11",
+		"lib0": "^0.2.47",
+		"mockdate": "^3.0.5"
+	}
+}

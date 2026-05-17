@@ -1,0 +1,53 @@
+"use client";
+
+import { CollabApiProviderWebsocket } from "@collab-api/provider";
+// import {
+// 	TiptapCollabProvider,
+// 	TiptapCollabProviderWebsocket,
+// } from "@tiptap-cloud/provider";
+import { useEffect, useState } from "react";
+import { SocketContext1 } from "@/app/SocketContext1";
+import { SocketContext2 } from "@/app/SocketContext2";
+
+export default function Layout({
+	children,
+}: Readonly<{
+	children: React.ReactNode;
+}>) {
+	const [socket1, setSocket1] = useState<CollabApiProviderWebsocket | null>(
+		null,
+	);
+	const [socket2, setSocket2] = useState<CollabApiProviderWebsocket | null>(
+		null,
+	);
+
+	useEffect(() => {
+		const newlyCreatedSocket1 = new CollabApiProviderWebsocket({
+			url: process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080",
+		});
+		const newlyCreatedSocket2 = new CollabApiProviderWebsocket({
+			url: process.env.NEXT_PUBLIC_WS_URL ?? "ws://localhost:8080",
+		});
+		// const newlyCreatedSocket = new TiptapCollabProviderWebsocket({
+		// 	appId: "",
+		// });
+
+		setSocket1(newlyCreatedSocket1);
+		setSocket2(newlyCreatedSocket2);
+
+		return () => {
+			newlyCreatedSocket1?.destroy();
+			newlyCreatedSocket2?.destroy();
+		};
+	}, []);
+
+	if (socket1 && socket2) {
+		return (
+			<>
+				<SocketContext1 value={socket1}>
+					<SocketContext2 value={socket2}>{children}</SocketContext2>
+				</SocketContext1>
+			</>
+		);
+	}
+}
