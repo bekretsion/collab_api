@@ -1,213 +1,100 @@
 # Collab API
 
-A production-grade real-time collaboration backend built on [Y.js](https://github.com/yjs/yjs) CRDTs.
+> Real-time collaborative document sync backend — WebSocket server built on Collab API and Yjs CRDT.
 
-[![Version](https://img.shields.io/npm/v/@collab-api/server.svg?label=version)](https://www.npmjs.com/package/@collab-api/server)
-[![Downloads](https://img.shields.io/npm/dm/@collab-api/server.svg)](https://npmcharts.com/compare/@collab-api/server?minimal=true)
-[![License](https://img.shields.io/npm/l/@collab-api/server.svg)](https://www.npmjs.com/package/@collab-api/server)
+**Live backend:** [collab-api-jayn.onrender.com](https://collab-api-jayn.onrender.com)  
+**Live playground:** [collab-api-frontend.vercel.app](https://collab-api-frontend.vercel.app)
 
-## How it works
+---
 
-Most "real-time" collaboration systems rely on operational transforms (OT) — a fragile, order-dependent algorithm that breaks under network partitions and requires a central authority to sequence operations. Collab API takes a different approach.
+## What it is
 
-Every document is a **Y.js CRDT** (Conflict-free Replicated Data Type). Updates are encoded as compact binary diffs, broadcast over WebSocket, and merged on every client independently — with mathematical guarantees of convergence. No central sequencer. No conflict resolution logic. No last-write-wins races.
+A WebSocket backend for real-time collaborative editing. Multiple clients connect, make changes simultaneously, and all changes merge automatically without conflicts — no matter the order they arrive.
 
-The sync protocol runs in two phases:
+Built on a production WebSocket server architecture for Yjs CRDT documents.
 
-1. **State vector exchange** — clients exchange compressed state vectors to identify missing updates without transmitting full document state
-2. **Diff application** — only the missing binary diffs are transmitted, applied, and re-broadcast
+---
 
-This makes both initial sync and incremental updates bandwidth-optimal, regardless of document size or connection history.
+## Why this is senior-level work
 
-## Architecture
+Most developers reach for socket.io and build a naive broadcast system. This is architecturally different:
 
-Collab API is built around three core primitives:
+**CRDT-based conflict resolution**  
+Uses Yjs — a battle-tested Conflict-free Replicated Data Type implementation. Two users typing at the same position simultaneously always merge correctly. No "last write wins", no data loss, no manual conflict handling.
 
-**Document** — an in-memory Y.Doc instance shared across all connected clients for a given room. Created on first connection, evicted from memory after the last client disconnects and the final state is persisted.
+**Binary protocol, not JSON**  
+Document state travels as `Uint8Array` — Yjs binary encoding. More efficient than JSON, designed for partial state sync (only deltas are sent, not full document on every change).
 
-**Extension Pipeline** — an ordered async middleware chain that runs on every lifecycle event. Extensions compose cleanly: Logger → Auth → Database → Redis → S3, each receiving the same typed payload and optionally short-circuiting the chain.
+**Awareness protocol**  
+Cursor positions and presence (who is online, where their cursor is) run on a separate ephemeral channel inside the same WebSocket connection — never persisted, zero overhead on the persistence layer.
 
-**Connection** — either a `ClientConnection` (WebSocket, external) or a `DirectConnection` (in-process, for server-side reads/writes). Both interact with the same document and trigger the same hooks, so persistence and awareness work identically regardless of origin.
+**Hook-based extension architecture**  
+The server lifecycle is fully hookable: `onConnect → onAuthenticate → onLoadDocument → onChange → onStoreDocument → onDisconnect`. Each hook receives typed context — this is the pattern used to enforce multi-tenancy, auth, and custom persistence in production.
 
-Documents are loaded lazily and kept in memory only while active. A debounce window collapses rapid edits into a single `onStoreDocument` call, preventing write amplification without risking data loss. On graceful shutdown, `flushPendingStores()` drains any pending writes before the process exits.
+**Horizontal scaling ready**  
+The Redis pub/sub adapter pattern means this server can run as multiple instances behind a load balancer — all instances share document state through Redis without sticky sessions.
 
-## Packages
+---
 
-| Package | Description |
+## Current state
+
+This repository is the **playground phase** — the live deployment demonstrates the core real-time sync working end-to-end.
+
+**In progress:**
+- `onAuthenticate` — JWT verification, returning `{ userId, tenantId }` as context
+- Schema-per-tenant PostgreSQL with Prisma + row-level security
+- `onLoadDocument` / `onStoreDocument` — binary state persistence to Postgres
+- Redis extension for horizontal scaling
+- REST API alongside WebSocket (document CRUD, user management)
+- Pino structured logging with correlation IDs
+- Docker + full deployment pipeline
+
+---
+
+## Stack
+
+| Layer | Technology |
 |---|---|
-| `@collab-api/server` | Core WebSocket server and document lifecycle |
-| `@collab-api/provider` | WebSocket client provider with reconnection and sync |
-| `@collab-api/provider-react` | React hooks wrapping the provider |
-| `@collab-api/common` | Shared types, auth helpers, CRDT utilities |
-| `@collab-api/transformer` | Prosemirror / Tiptap ↔ Y.js document transformer |
-| `@collab-api/extension-sqlite` | SQLite persistence via better-sqlite3 |
-| `@collab-api/extension-database` | Generic database persistence interface |
-| `@collab-api/extension-redis` | Redis pub/sub adapter for horizontal scaling |
-| `@collab-api/extension-s3` | S3-compatible document storage |
-| `@collab-api/extension-webhook` | Webhook delivery on document lifecycle events |
-| `@collab-api/extension-throttle` | Rate limiting and connection banning |
-| `@collab-api/extension-logger` | Structured request and event logging |
+| Runtime | Node.js + TypeScript |
+| WebSocket | Collab API |
+| CRDT | Yjs |
+| Scaling | Redis pub/sub adapter |
+| Persistence | PostgreSQL + Prisma *(in progress)* |
+| Auth | JWT RS256 + RBAC *(in progress)* |
+| Deployment | Render (backend) · Vercel (playground) |
 
-## Quick Start
+---
+
+## Running Locally
 
 ```bash
-npm install @collab-api/server @collab-api/extension-sqlite
+git clone https://github.com/bekretsion/collab_api
+cd collab_api
+npm install
+npm start
+```
 
-import { Server } from '@collab-api/server'
-import { SQLite } from '@collab-api/extension-sqlite'
+Server runs on `ws://localhost:1234`
 
-const server = new Server({
-  port: 1234,
+---
 
-  async onAuthenticate({ token, documentName }) {
-    const user = await verifyJWT(token)
-    if (!user.canAccess(documentName)) {
-      throw new Error('Forbidden')
-    }
-  },
+## Architecture (target)
 
-  async onLoadDocument({ document, documentName }) {
-    const data = await db.get(documentName)
-    if (data) Y.applyUpdate(document, data)
-  },
-
-  async onStoreDocument({ document, documentName }) {
-    await db.set(documentName, Y.encodeStateAsUpdate(document))
-  },
-
-  extensions: [
-    new SQLite({ database: 'db.sqlite' }),
-  ],
-})
-
-server.listen()
-Horizontal Scaling with Redis
-A single Collab API node keeps all documents in memory. To scale across multiple nodes, the Redis extension fans out Y.js binary updates via pub/sub — every node receives every update and applies it to its local in-memory copy, keeping all instances converged without sticky sessions or a shared memory layer.
-
-
-import { Server } from '@collab-api/server'
-import { Redis } from '@collab-api/extension-redis'
-import { S3 } from '@collab-api/extension-s3'
-
-const server = new Server({
-  port: 1234,
-  extensions: [
-    new Redis({
-      host: process.env.REDIS_HOST,
-      port: 6379,
-    }),
-    new S3({
-      bucket: process.env.S3_BUCKET,
-      region: 'us-east-1',
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    }),
-  ],
-})
-
-server.listen()
-Deploy N instances behind a load balancer with no affinity rules — any node can serve any client.
-
-Direct Connections (Server-side Document Access)
-Beyond WebSocket clients, Collab API exposes a DirectConnection API for server-side processes to read and write documents programmatically — useful for export jobs, AI pipelines, or administrative mutations:
-
-
-const connection = await server.openDirectConnection('document-id', context)
-
-connection.transact((doc) => {
-  const text = doc.getText('content')
-  text.insert(0, 'Server-injected content')
-})
-
-await connection.disconnect()
-Transactions are applied as Y.js transactions with a local origin and propagate to all connected WebSocket clients in real time.
-
-Extension Pipeline
-Extensions execute as an ordered async middleware chain. Each hook receives the same payload and can short-circuit the chain by throwing SkipFurtherHooksError:
-
-
-import { SkipFurtherHooksError } from '@collab-api/common'
-
-class CacheExtension {
-  async onLoadDocument({ document, documentName }) {
-    const cached = await redis.getBuffer(documentName)
-    if (cached) {
-      Y.applyUpdate(document, cached)
-      throw new SkipFurtherHooksError() // skip remaining onLoadDocument hooks
-    }
-  }
-}
-Control execution order across extensions with priority:
-
-
-class HighPriorityAuth {
-  priority = 200 // higher runs first (default: 100)
-
-  async onAuthenticate({ token }) {
-    // always runs before lower-priority extensions
-  }
-}
-Lifecycle Hooks
-Hook	Triggered
-onConfigure	Once at server startup
-onListen	When the HTTP server binds
-onUpgrade	On WebSocket upgrade request
-onConnect	On every new client connection
-onAuthenticate	Before document access is granted
-onLoadDocument	First time a document is requested
-afterLoadDocument	After document is fully loaded
-beforeHandleMessage	Before each incoming message is processed
-beforeSync	Before initial sync step
-onChange	On every Y.js document update
-onStoreDocument	Debounced — after changes settle
-afterStoreDocument	After persistence completes
-onAwarenessUpdate	On cursor / presence state changes
-onStateless	On custom stateless messages
-beforeUnloadDocument	Before document is evicted from memory
-afterUnloadDocument	After document is evicted
-onDisconnect	On client disconnect
-onRequest	On raw HTTP requests (non-WebSocket)
-onDestroy	On server shutdown
-Awareness & Presence
-Collab API syncs Y.js awareness state alongside document state — enabling cursors, selections, online indicators, and any ephemeral per-user data with no extra infrastructure:
-
-
-// client
-provider.awareness.setLocalStateField('user', {
-  name: 'Alice',
-  color: '#ff0000',
-  cursor: { anchor: 42, head: 56 },
-})
-
-// server
-async onAwarenessUpdate({ states, documentName }) {
-  const online = states.map(s => s.user?.name)
-  console.log(`${online.length} users in ${documentName}`)
-}
-Debounced Persistence
-onStoreDocument is intentionally debounced. High-frequency edits collapse into a single store call after the configured idle window — preventing write amplification while guaranteeing the final state is always persisted:
-
-
-const server = new Server({
-  debounce: 2000,     // wait 2s after last change
-  maxDebounce: 10000, // always flush within 10s regardless
-})
-On graceful shutdown, flushPendingStores() drains all pending debounced writes before the process exits.
-
-Running the Playground
-
-pnpm install
-pnpm playground              # default Node.js + Next.js frontend
-pnpm playground:redis        # with Redis
-pnpm playground:express      # with Express
-pnpm playground:s3           # with S3
-pnpm playground:webhook      # with webhooks
-pnpm playground:bun          # Bun runtime
-pnpm playground:deno         # Deno runtime
-Requirements
-Node.js >= 22
-Contributing
-Issues and pull requests welcome at github.com/bekretsion/collab_api.
-
-
-
+```
+Clients (Browser / Mobile)
+        │  WebSocket
+        ▼
+  Collab API Server
+        │
+   ┌────┴──────────────────────────┐
+   │         Hook Lifecycle        │
+   │  onAuthenticate  (JWT + RBAC) │
+   │  onLoadDocument  (Postgres)   │
+   │  onChange        (broadcast)  │
+   │  onStoreDocument (Postgres)   │
+   └────────────────────────────── ┘
+        │                │
+      Redis            PostgreSQL
+   (pub/sub sync)   (binary doc state)
+   multi-instance    schema-per-tenant
+```
