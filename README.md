@@ -21,26 +21,15 @@ This makes both initial sync and incremental updates bandwidth-optimal, regardle
 
 ## Architecture
 
-┌─────────────────────────────────────────────────┐
-│                  CollabApi                       │
-│                                                  │
-│  ┌──────────┐   ┌──────────┐   ┌─────────────┐  │
-│  │ Document │   │ Document │   │   Document  │  │
-│  │  (Y.Doc) │   │  (Y.Doc) │   │   (Y.Doc)   │  │
-│  └────┬─────┘   └────┬─────┘   └──────┬──────┘  │
-│       │              │                │          │
-│  ┌────▼──────────────▼────────────────▼──────┐   │
-│  │           Extension Pipeline              │   │
-│  │  Logger → Auth → Database → Redis → S3   │   │
-│  └───────────────────────────────────────────┘   │
-└─────────────────────────────────────────────────┘
-▲                   ▲
-WebSocket           DirectConnection
-(external)           (internal API)
+Collab API is built around three core primitives:
 
+**Document** — an in-memory Y.Doc instance shared across all connected clients for a given room. Created on first connection, evicted from memory after the last client disconnects and the final state is persisted.
 
+**Extension Pipeline** — an ordered async middleware chain that runs on every lifecycle event. Extensions compose cleanly: Logger → Auth → Database → Redis → S3, each receiving the same typed payload and optionally short-circuiting the chain.
 
-Each `Document` is an in-memory Y.Doc shared across all connected clients. When the last client disconnects, a debounced `onStoreDocument` hook fires, persists the state, and the document is evicted from memory — keeping the server footprint flat under variable load.
+**Connection** — either a `ClientConnection` (WebSocket, external) or a `DirectConnection` (in-process, for server-side reads/writes). Both interact with the same document and trigger the same hooks, so persistence and awareness work identically regardless of origin.
+
+Documents are loaded lazily and kept in memory only while active. A debounce window collapses rapid edits into a single `onStoreDocument` call, preventing write amplification without risking data loss. On graceful shutdown, `flushPendingStores()` drains any pending writes before the process exits.
 
 ## Packages
 
