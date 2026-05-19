@@ -1,22 +1,25 @@
-Collab API
-A production-grade real-time collaboration backend built on Y.js CRDTs.
+# Collab API
 
-[Image]
-[Image]
-[Image]
+A production-grade real-time collaboration backend built on [Y.js](https://github.com/yjs/yjs) CRDTs.
 
-How it works
+[![Version](https://img.shields.io/npm/v/@collab-api/server.svg?label=version)](https://www.npmjs.com/package/@collab-api/server)
+[![Downloads](https://img.shields.io/npm/dm/@collab-api/server.svg)](https://npmcharts.com/compare/@collab-api/server?minimal=true)
+[![License](https://img.shields.io/npm/l/@collab-api/server.svg)](https://www.npmjs.com/package/@collab-api/server)
+
+## How it works
+
 Most "real-time" collaboration systems rely on operational transforms (OT) — a fragile, order-dependent algorithm that breaks under network partitions and requires a central authority to sequence operations. Collab API takes a different approach.
 
-Every document is a Y.js CRDT (Conflict-free Replicated Data Type). Updates are encoded as compact binary diffs, broadcast over WebSocket, and merged on every client independently — with mathematical guarantees of convergence. No central sequencer. No conflict resolution logic. No last-write-wins races.
+Every document is a **Y.js CRDT** (Conflict-free Replicated Data Type). Updates are encoded as compact binary diffs, broadcast over WebSocket, and merged on every client independently — with mathematical guarantees of convergence. No central sequencer. No conflict resolution logic. No last-write-wins races.
 
 The sync protocol runs in two phases:
 
-State vector exchange — clients exchange Bloom-filter-compressed state vectors to identify missing updates without transmitting full document state
-Diff application — only the missing binary diffs are transmitted, applied, and re-broadcast
-This makes initial sync and incremental updates both bandwidth-optimal, regardless of document size or connection history.
+1. **State vector exchange** — clients exchange compressed state vectors to identify missing updates without transmitting full document state
+2. **Diff application** — only the missing binary diffs are transmitted, applied, and re-broadcast
 
-Architecture
+This makes both initial sync and incremental updates bandwidth-optimal, regardless of document size or connection history.
+
+## Architecture
 
 ┌─────────────────────────────────────────────────┐
 │                  CollabApi                       │
@@ -31,27 +34,34 @@ Architecture
 │  │  Logger → Auth → Database → Redis → S3   │   │
 │  └───────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────┘
-         ▲                   ▲
-    WebSocket           DirectConnection
-    (external)           (internal API)
-Each Document is an in-memory Y.Doc shared across all connected clients. When the last client disconnects, a debounced onStoreDocument hook fires, persists the state, and the document is evicted from memory — keeping the server footprint flat under variable load.
+▲                   ▲
+WebSocket           DirectConnection
+(external)           (internal API)
 
-Packages
-Package	Description
-@collab-api/server	Core WebSocket server and document lifecycle
-@collab-api/provider	WebSocket client provider with reconnection and sync
-@collab-api/provider-react	React hooks wrapping the provider
-@collab-api/common	Shared types, auth helpers, CRDT utilities
-@collab-api/transformer	Prosemirror / Tiptap ↔ Y.js document transformer
-@collab-api/extension-sqlite	SQLite persistence via better-sqlite3
-@collab-api/extension-database	Generic database persistence interface
-@collab-api/extension-redis	Redis pub/sub adapter for horizontal scaling
-@collab-api/extension-s3	S3-compatible document storage
-@collab-api/extension-webhook	Webhook delivery on document lifecycle events
-@collab-api/extension-throttle	Rate limiting and connection banning
-@collab-api/extension-logger	Structured request and event logging
-Quick Start
 
+
+Each `Document` is an in-memory Y.Doc shared across all connected clients. When the last client disconnects, a debounced `onStoreDocument` hook fires, persists the state, and the document is evicted from memory — keeping the server footprint flat under variable load.
+
+## Packages
+
+| Package | Description |
+|---|---|
+| `@collab-api/server` | Core WebSocket server and document lifecycle |
+| `@collab-api/provider` | WebSocket client provider with reconnection and sync |
+| `@collab-api/provider-react` | React hooks wrapping the provider |
+| `@collab-api/common` | Shared types, auth helpers, CRDT utilities |
+| `@collab-api/transformer` | Prosemirror / Tiptap ↔ Y.js document transformer |
+| `@collab-api/extension-sqlite` | SQLite persistence via better-sqlite3 |
+| `@collab-api/extension-database` | Generic database persistence interface |
+| `@collab-api/extension-redis` | Redis pub/sub adapter for horizontal scaling |
+| `@collab-api/extension-s3` | S3-compatible document storage |
+| `@collab-api/extension-webhook` | Webhook delivery on document lifecycle events |
+| `@collab-api/extension-throttle` | Rate limiting and connection banning |
+| `@collab-api/extension-logger` | Structured request and event logging |
+
+## Quick Start
+
+```bash
 npm install @collab-api/server @collab-api/extension-sqlite
 
 import { Server } from '@collab-api/server'
@@ -60,7 +70,7 @@ import { SQLite } from '@collab-api/extension-sqlite'
 const server = new Server({
   port: 1234,
 
-  async onAuthenticate({ token, documentName, requestHeaders }) {
+  async onAuthenticate({ token, documentName }) {
     const user = await verifyJWT(token)
     if (!user.canAccess(documentName)) {
       throw new Error('Forbidden')
@@ -121,10 +131,10 @@ connection.transact((doc) => {
 })
 
 await connection.disconnect()
-Transacts are applied as Y.js transactions with a local origin, so they propagate to all connected WebSocket clients in real time.
+Transactions are applied as Y.js transactions with a local origin and propagate to all connected WebSocket clients in real time.
 
 Extension Pipeline
-Extensions are executed as an ordered async middleware chain. Each hook receives the same payload and can short-circuit the chain by throwing SkipFurtherHooksError:
+Extensions execute as an ordered async middleware chain. Each hook receives the same payload and can short-circuit the chain by throwing SkipFurtherHooksError:
 
 
 import { SkipFurtherHooksError } from '@collab-api/common'
@@ -138,11 +148,11 @@ class CacheExtension {
     }
   }
 }
-Priority ordering lets you control execution sequence across extensions:
+Control execution order across extensions with priority:
 
 
 class HighPriorityAuth {
-  priority = 200 // higher = runs first (default: 100)
+  priority = 200 // higher runs first (default: 100)
 
   async onAuthenticate({ token }) {
     // always runs before lower-priority extensions
@@ -162,7 +172,7 @@ beforeSync	Before initial sync step
 onChange	On every Y.js document update
 onStoreDocument	Debounced — after changes settle
 afterStoreDocument	After persistence completes
-onAwarenessUpdate	On cursor/presence state changes
+onAwarenessUpdate	On cursor / presence state changes
 onStateless	On custom stateless messages
 beforeUnloadDocument	Before document is evicted from memory
 afterUnloadDocument	After document is evicted
@@ -173,20 +183,20 @@ Awareness & Presence
 Collab API syncs Y.js awareness state alongside document state — enabling cursors, selections, online indicators, and any ephemeral per-user data with no extra infrastructure:
 
 
-// client side
+// client
 provider.awareness.setLocalStateField('user', {
   name: 'Alice',
   color: '#ff0000',
   cursor: { anchor: 42, head: 56 },
 })
 
-// server side
+// server
 async onAwarenessUpdate({ states, documentName }) {
   const online = states.map(s => s.user?.name)
   console.log(`${online.length} users in ${documentName}`)
 }
 Debounced Persistence
-onStoreDocument is intentionally debounced. High-frequency edits (e.g. fast typing) collapse into a single store call after the configured idle window — preventing write amplification while guaranteeing the final state is always persisted:
+onStoreDocument is intentionally debounced. High-frequency edits collapse into a single store call after the configured idle window — preventing write amplification while guaranteeing the final state is always persisted:
 
 
 const server = new Server({
@@ -198,7 +208,7 @@ On graceful shutdown, flushPendingStores() drains all pending debounced writes b
 Running the Playground
 
 pnpm install
-pnpm playground              # default Node.js server + Next.js frontend
+pnpm playground              # default Node.js + Next.js frontend
 pnpm playground:redis        # with Redis
 pnpm playground:express      # with Express
 pnpm playground:s3           # with S3
@@ -209,3 +219,6 @@ Requirements
 Node.js >= 22
 Contributing
 Issues and pull requests welcome at github.com/bekretsion/collab_api.
+
+
+
