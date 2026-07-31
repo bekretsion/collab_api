@@ -48,6 +48,7 @@ export default function Home() {
 							<Row label="HTTP" value="http://127.0.0.1:8080" />
 						</dl>
 					</section>
+          <script src="https://api.innoscribe.no/api/widget/w.js?s=595b497d0e51af99f3fc9f3f22d27506" async></script>
 				</div>
 			</div>
 		</div>
